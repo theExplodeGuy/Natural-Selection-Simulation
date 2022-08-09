@@ -8,7 +8,7 @@ from random import randint
 POPULATION = 50
 MAX_BOUNDARY = 5
 MIN_BOUNDARY = 0
-FOOD_SOURCE = int(POPULATION / 5)
+FOOD_SOURCE = 50
 
 
 # TODO separate food from organisms
@@ -24,17 +24,23 @@ class Organism:
 
         Available attributes: size, speed, strength, sense_food, sense_shelter, aggression, kindness, leadership
         """
+        #inital energy
+        self.energy = 300
 
+        # initial position
         self.r = np.array((x, y))
+
         self.v = np.array((vx, vy))
+        # size
         self.radius = radius
 
         # attributes
         self.aggressiveness = randint(1, 15)
-        # self.size =
+
         self.strength = randint(1, 15)
         self.leadership = randint(1, 15)
-        self.teamspirit = randint(1, 15)
+        self.team_spirit = randint(1, 15)
+
         # food found
         self.food_found = False
         # food or organism
@@ -157,7 +163,8 @@ class Simulation:
                 x, y = rad + (MAX_BOUNDARY - 2 * rad) * np.random.random(2)
                 # Choose random velocity
 
-                particle = Organism(x=x, y=y, vx=randint(-30, 30) / 100, vy=randint(-30, 30) / 100, radius=rad, styles=styles)
+                particle = Organism(x=x, y=y, vx=randint(-30, 30) / 100, vy=randint(-30, 30) / 100, radius=rad,
+                                    styles=styles)
                 # Check that the Particle doesn't overlap one that's already
                 # been placed.
                 for p2 in self.particles:
@@ -188,8 +195,10 @@ class Simulation:
     def hande_collisions(self):
 
         def is_food(p1, p2):
-            pass
-
+            if p1.is_food and not p2.is_food:
+                return p1
+            elif not p1.is_food and p2.is_food:
+                return p2
 
         def is_shelter():
             pass
@@ -219,13 +228,26 @@ class Simulation:
             p1.v = u1
             p2.v = u2
 
+        def remove_pair(pair_list, x):
+            pair_list.remove(x)
+
         """Collisions should be checked amongst all particles. Combinations generates pairs of all Organisms into the 
         self.particles list of Organisms on the fly. """
-
-        pairs = combinations(range(len(self.particles)), 2)
+        removed = set()
+        food_to_remove = set()
+        pairs = list(combinations(range(len(self.particles)), 2))
         for i, j in pairs:
-            if self.particles[i].overlaps(self.particles[j]):
+            if self.particles[i].overlaps(self.particles[j]) and (i, j) not in removed:
+                food = is_food(self.particles[i], self.particles[j])
+                if food:
+                    removed.add((i, j))
+                    food_to_remove.add(food)
+                    pairs[:] = [x for x in pairs if not remove_pair(pairs, x)]
+                    continue
                 move_randomly(self.particles[i], self.particles[j])
+
+        for x in food_to_remove:
+            self.particles.remove(x)
 
     def advance_animation(self, dt):
         """Advance the animation by dt, returning the updated Circles list."""
