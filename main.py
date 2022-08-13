@@ -10,11 +10,11 @@ from matplotlib import animation
 from itertools import combinations
 from random import randint
 
-POPULATION = 20
-MAX_BOUNDARY = 5
+POPULATION = 10
+MAX_BOUNDARY = 3
 MIN_BOUNDARY = 0
-FOOD_SOURCE = 15
-ENERGY = 3000000 / 2
+FOOD_SOURCE = 0
+ENERGY = 3000000 / 15
 
 
 # TODO separate food from organisms
@@ -46,6 +46,17 @@ class Organism:
         self.strength = randint(1, 15)
         self.leadership = randint(1, 15)
         self.team_spirit = randint(1, 15)
+        self.speed = (sqrt(self.vx ** 2 + self.vy ** 2))
+
+        # score for fight or flight
+        if (4 * self.aggressiveness + 2 * self.strength + 280 * self.radius) - 7 * (1400 / 41) * self.speed > 9.2:
+            self.score = True
+        else:
+            self.score = True
+
+        self.power = 2 * self.strength + 280 * self.radius
+        self.consumption = 200 * self.radius + (1000 / 41) * self.speed + (2000 / 14) * self.strength
+
 
         # food found
         self.food_found = False
@@ -115,8 +126,7 @@ class Organism:
         self.r += self.v * dt
 
         if not self.is_food:
-            self.energy -= 200 * self.radius + (1000 / 41) * (sqrt(self.vx ** 2 + self.vy ** 2)) + (
-                    2000 / 14) * self.strength
+            self.energy -= self.consumption
 
         # Make the Particles bounce off the walls
         if self.x - self.radius < MIN_BOUNDARY:
@@ -152,6 +162,7 @@ class Simulation:
         self.total_food = set()
         self.init_particles(n, radius, styles)
         self.init_food()
+        self.organism_to_remove = set()
 
     def init_particles(self, n, radius, styles=None):
         """Initialize the n Particles of the simulation.
@@ -255,13 +266,34 @@ class Simulation:
                         print('born')
                         break
 
-        def is_organisms():
-            pass
+        def is_organisms(p1, p2):
+            if p1.score and p2.score:
+                return fight_result(p1, p2)
+            elif p1.score and not p2.score:
+                return fight_vs_flight(p1, p2)
+            elif p2.score and not p1.score:
+                return fight_vs_flight(p2, p1)
+            else:
+                co_operate(p1, p2)
 
-        def fight_or_flight():
-            pass
+        def fight_result(p1, p2):
+            if p1.power > p2.power and p1.consumption < p1.energy:
+                p1.energy = ENERGY
+                return p2
+            if p2.power > p1.power and p2.consumption < p2.energy:
+                p2.energy = ENERGY
+                return p1
 
-        def co_operate():
+        def fight_vs_flight(fighter, runner):
+            if fighter.speed > runner.speed:
+                fighter.energy = ENERGY
+                return runner
+            elif runner.speed > fighter.speed:
+                return
+            else:
+                fight_result(fighter, runner)
+
+        def co_operate(p1, p2):
             pass
 
         def split_food():
@@ -269,7 +301,7 @@ class Simulation:
 
         # move randomly after collision according to these equations:
         # https://en.wikipedia.org/wiki/Elastic_collision
-        def move_randomly(p1, p2):
+        '''def move_randomly(p1, p2):
             m1, m2 = p1.radius ** 2, p2.radius ** 2
             M = m1 + m2
             r1, r2 = p1.r, p2.r
@@ -278,7 +310,7 @@ class Simulation:
             u1 = v1 - 2 * m2 / M * np.dot(v1 - v2, r1 - r2) / d * (r1 - r2)
             u2 = v2 - 2 * m1 / M * np.dot(v2 - v1, r2 - r1) / d * (r2 - r1)
             p1.v = u1
-            p2.v = u2
+            p2.v = u2'''
 
         def remove_pair(pair_list, x):
             pair_list.remove(x)
@@ -296,7 +328,10 @@ class Simulation:
                 elif self.particles[i].is_fed and self.particles[j].is_fed:
                     reproduce(self.particles[i], self.particles[j])
 
-                move_randomly(self.particles[i], self.particles[j])
+                else:
+                    self.organism_to_remove.add(is_organisms(self.particles[i], self.particles[j]))
+
+                '''move_randomly(self.particles[i], self.particles[j])'''
 
     def spawn_food(self):
         if not self.total_food:
@@ -316,10 +351,14 @@ class Simulation:
                 self.food_to_remove.remove(p)
                 self.total_food.remove(p)
                 self.particles.remove(p)
+            elif p in self.organism_to_remove:
+                self.organism_to_remove.remove(p)
+                self.particles.remove(p)
+                print('removed by fight/flight', i)
 
             elif p.energy < 1:
                 self.particles.remove(p)
-                print('removed', i)
+                print('removed by energy', i)
 
             elif p not in self.food_to_remove and p.energy > 1:
                 self.circles[i].center = p.r
