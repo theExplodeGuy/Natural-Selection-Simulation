@@ -14,7 +14,7 @@ POPULATION = 20
 MAX_BOUNDARY = 5
 MIN_BOUNDARY = 0
 FOOD_SOURCE = 15
-ENERGY = 3000000  / 2
+ENERGY = 3000000 / 2
 
 
 # TODO separate food from organisms
@@ -153,7 +153,6 @@ class Simulation:
         self.init_particles(n, radius, styles)
         self.init_food()
 
-
     def init_particles(self, n, radius, styles=None):
         """Initialize the n Particles of the simulation.
 
@@ -233,8 +232,8 @@ class Simulation:
 
         def reproduce(p1, p2):
             if p1.is_fed and p2.is_fed and not p1.has_offspring and not p2.has_offspring:
-                p1.has_offspring = True
-                p2.has_offspring = True
+                # p1.has_offspring = True
+                # p2.has_offspring = True
                 while True:
                     x, y = 0.05 + (MAX_BOUNDARY - 2 * 0.05) * np.random.random(2)
 
@@ -244,7 +243,7 @@ class Simulation:
 
                     # Check that the Particle doesn't overlap one that's already
                     # been placed.
-                    particle = Organism(x=x, y=y, vx=p1.vx, vy=p1.vy, radius=(p2.radius + p1.radius) / 2,
+                    particle = Organism(x=x, y=y, vx=p1.vx, vy=p2.vy, radius=(p2.radius + p1.radius) / 2,
                                         styles=styles)
 
                     for p2 in self.particles:
@@ -333,7 +332,6 @@ class Simulation:
         for i, p in enumerate(self.particles):
             p.advance(dt)
         self.hande_collisions()
-
 
     def init(self):
         """Initialize Matplotlib animation."""
