@@ -1,3 +1,8 @@
+import random
+import sys
+import time
+from math import sqrt
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
@@ -5,10 +10,11 @@ from matplotlib import animation
 from itertools import combinations
 from random import randint
 
-POPULATION = 50
+POPULATION = 20
 MAX_BOUNDARY = 5
 MIN_BOUNDARY = 0
-FOOD_SOURCE = 50
+FOOD_SOURCE = 15
+ENERGY = 3000000  / 2
 
 
 # TODO separate food from organisms
@@ -24,8 +30,8 @@ class Organism:
 
         Available attributes: size, speed, strength, sense_food, sense_shelter, aggression, kindness, leadership
         """
-        #inital energy
-        self.energy = 300
+        # inital energy
+        self.energy = ENERGY
 
         # initial position
         self.r = np.array((x, y))
@@ -45,11 +51,16 @@ class Organism:
         self.food_found = False
         # food or organism
         self.is_food = False
+        self.is_fed = False
+        self.has_offspring = False
 
+        self.color = int(
+            self.aggressiveness + self.strength + self.leadership + self.team_spirit + self.radius + self.vx \
+            + self.vy)
         self.styles = styles
         if not self.styles:
             # Default circle styles
-            self.styles = {'edgecolor': 'b', 'fill': False}
+            self.styles = {'color': f'C{self.color}', 'fill': True}
 
     # For convenience, map the components of the particle's position and
     # velocity vector onto the attributes x, y, vx and vy.
@@ -103,6 +114,10 @@ class Organism:
 
         self.r += self.v * dt
 
+        if not self.is_food:
+            self.energy -= 200 * self.radius + (1000 / 41) * (sqrt(self.vx ** 2 + self.vy ** 2)) + (
+                    2000 / 14) * self.strength
+
         # Make the Particles bounce off the walls
         if self.x - self.radius < MIN_BOUNDARY:
             self.x = self.radius
@@ -131,7 +146,13 @@ class Simulation:
         radius can be a single value or a sequence with n values.
         """
 
+        self.circles = []
+        self.to_add = []
+        self.food_to_remove = set()
+        self.total_food = set()
         self.init_particles(n, radius, styles)
+        self.init_food()
+
 
     def init_particles(self, n, radius, styles=None):
         """Initialize the n Particles of the simulation.
@@ -174,14 +195,15 @@ class Simulation:
                     self.particles.append(particle)
                     break
 
+    def init_food(self):
         for i in range(FOOD_SOURCE):
             # Try to find random available position for organism
             while True:
                 # Choose random x,y inside the plane
-                styles = {'color': 'C3'}
+                styles = {'color': 'C7', 'fill': True}
                 x, y = 0.05 + (MAX_BOUNDARY - 2 * 0.05) * np.random.random(2)
                 # Choose random velocity
-                particle = Organism(x=x, y=y, vx=0, vy=0, radius=0.05, styles=styles)
+                particle = Organism(x=x, y=y, vx=0, vy=0, radius=0.1, styles=styles)
                 # Check that the Particle doesn't overlap one that's already
                 # been placed.
                 for p2 in self.particles:
@@ -190,18 +212,49 @@ class Simulation:
                 else:
                     particle.is_food = True
                     self.particles.append(particle)
+                    self.total_food.add(particle)
                     break
 
     def hande_collisions(self):
 
         def is_food(p1, p2):
             if p1.is_food and not p2.is_food:
+                p2.energy = ENERGY
+                p2.is_fed = True
+                p1.vx = 0
+                p1.vy = 0
                 return p1
             elif not p1.is_food and p2.is_food:
+                p1.energy = ENERGY
+                p1.is_fed = True
+                p2.vx = 0
+                p2.vy = 0
                 return p2
 
-        def is_shelter():
-            pass
+        def reproduce(p1, p2):
+            if p1.is_fed and p2.is_fed and not p1.has_offspring and not p2.has_offspring:
+                p1.has_offspring = True
+                p2.has_offspring = True
+                while True:
+                    x, y = 0.05 + (MAX_BOUNDARY - 2 * 0.05) * np.random.random(2)
+
+                    color = int(p1.vx + p2.vy + ((p2.radius + p1.radius) / 2))
+
+                    styles = {'color': f'C{color}', 'fill': False}
+
+                    # Check that the Particle doesn't overlap one that's already
+                    # been placed.
+                    particle = Organism(x=x, y=y, vx=p1.vx, vy=p1.vy, radius=(p2.radius + p1.radius) / 2,
+                                        styles=styles)
+
+                    for p2 in self.particles:
+                        if p2.overlaps(particle):
+                            break
+                    else:
+                        self.particles.append(particle)
+                        self.init()
+                        print('born')
+                        break
 
         def is_organisms():
             pass
@@ -233,29 +286,46 @@ class Simulation:
 
         """Collisions should be checked amongst all particles. Combinations generates pairs of all Organisms into the 
         self.particles list of Organisms on the fly. """
-        removed = set()
-        food_to_remove = set()
         pairs = list(combinations(range(len(self.particles)), 2))
-        for i, j in pairs:
-            if self.particles[i].overlaps(self.particles[j]) and (i, j) not in removed:
+        for i, j in pairs[:]:
+            if self.particles[i].overlaps(self.particles[j]):
+
                 food = is_food(self.particles[i], self.particles[j])
                 if food:
-                    removed.add((i, j))
-                    food_to_remove.add(food)
-                    pairs[:] = [x for x in pairs if not remove_pair(pairs, x)]
-                    continue
+                    self.food_to_remove.add(food)
+
+                elif self.particles[i].is_fed and self.particles[j].is_fed:
+                    reproduce(self.particles[i], self.particles[j])
+
                 move_randomly(self.particles[i], self.particles[j])
 
-        for x in food_to_remove:
-            self.particles.remove(x)
+    def spawn_food(self):
+        if not self.total_food:
+            self.init_food()
+            self.init()
 
     def advance_animation(self, dt):
         """Advance the animation by dt, returning the updated Circles list."""
+        self.hande_collisions()
+        self.spawn_food()
+        if len(self.particles) == 0:
+            sys.exit('END')
 
         for i, p in enumerate(self.particles):
             p.advance(dt)
-            self.circles[i].center = p.r
-        self.hande_collisions()
+            if p in self.food_to_remove:
+                self.food_to_remove.remove(p)
+                self.total_food.remove(p)
+                self.particles.remove(p)
+
+            elif p.energy < 1:
+                self.particles.remove(p)
+                print('removed', i)
+
+            elif p not in self.food_to_remove and p.energy > 1:
+                self.circles[i].center = p.r
+
+        self.init()
         return self.circles
 
     def advance(self, dt):
@@ -264,18 +334,22 @@ class Simulation:
             p.advance(dt)
         self.hande_collisions()
 
+
     def init(self):
         """Initialize Matplotlib animation."""
 
         self.circles = []
+
         for particle in self.particles:
             self.circles.append(particle.draw(self.ax))
+
         return self.circles
 
     def animate(self, i):
         """The function passed to Matplotlib FuncAnimation routine"""
 
-        self.advance_animation(0.01)
+        self.advance_animation(0.08)
+
         return self.circles
 
     def do_animation(self, save=False):
@@ -295,7 +369,7 @@ class Simulation:
         if save:
             Writer = animation.writers['ffmpeg']
             writer = Writer(fps=100, bitrate=1800)
-            anim.save('simulation.mp4', writer=writer)
+            anim.save('simulationv2.mp4', writer=writer)
         else:
             plt.show()
 
@@ -303,6 +377,6 @@ class Simulation:
 if __name__ == '__main__':
     n_particles = POPULATION
     radii = np.random.random(n_particles) * 0.05 + 0.02
-    styles = {'color': 'C0'}
-    sim = Simulation(n_particles, radii, styles)
+    # styles = {'color': 'C0'}
+    sim = Simulation(n_particles, radii)
     sim.do_animation(save=False)
