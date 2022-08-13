@@ -52,7 +52,7 @@ class Organism:
         if (4 * self.aggressiveness + 2 * self.strength + 280 * self.radius) - 7 * (1400 / 41) * self.speed > 9.2:
             self.score = True
         else:
-            self.score = True
+            self.score = False
 
         self.power = 2 * self.strength + 280 * self.radius
         self.consumption = 200 * self.radius + (1000 / 41) * self.speed + (2000 / 14) * self.strength
