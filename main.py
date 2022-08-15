@@ -59,6 +59,7 @@ class Organism:
             self.score = False
 
         self.power = 2 * self.strength + 280 * self.radius
+        self.consumption = 200 * self.radius + (1000 / 41) * self.speed + (2000 / 14) * self.strength
 
         self.color = int(
             self.aggressiveness + self.strength + self.leadership + self.team_spirit + self.radius + self.vx \
@@ -121,8 +122,7 @@ class Organism:
         self.r += self.v * dt
 
         if not self.is_food:
-            self.energy -= 200 * self.radius + (1000 / 41) * (sqrt(self.vx ** 2 + self.vy ** 2)) + (
-                    2000 / 14) * self.strength
+            self.energy -= self.consumption
 
         # Make the Particles bounce off the walls
         if self.x - self.radius < MIN_BOUNDARY:
@@ -305,8 +305,8 @@ class Simulation:
             v1, v2 = p1.v, p2.v
             u1 = v1 - 2 * m2 / M * np.dot(v1 - v2, r1 - r2) / d * (r1 - r2)
             u2 = v2 - 2 * m1 / M * np.dot(v2 - v1, r2 - r1) / d * (r2 - r1)
-            p1.v = u1
-            p2.v = u2
+            p1.v = -v1
+            p2.v = -v2
 
         def remove_pair(pair_list, x):
             pair_list.remove(x)
@@ -351,10 +351,11 @@ class Simulation:
             elif p in self.organism_to_remove:
                 self.organism_to_remove.remove(p)
                 self.particles.remove(p)
+                print('removed by fight', i)
 
             elif p.energy < 1:
                 self.particles.remove(p)
-                print('removed', i)
+                print('removed by energy', i)
 
             elif p not in self.food_to_remove and p.energy > 1:
                 self.circles[i].center = p.r
