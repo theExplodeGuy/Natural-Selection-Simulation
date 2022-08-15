@@ -42,10 +42,11 @@ class Organism:
 
         # attributes
         self.aggressiveness = randint(1, 15)
-        self.speed = sqrt(self.vx ** 2 + self.vy ** 2)
+
         self.strength = randint(1, 15)
         self.leadership = randint(1, 15)
         self.team_spirit = randint(1, 15)
+        self.speed = sqrt(self.vx ** 2 + self.vy ** 2)
 
         # food found
         self.food_found = False
@@ -53,6 +54,15 @@ class Organism:
         self.is_food = False
         self.is_fed = False
         self.has_offspring = False
+
+        # score for fight or flight
+        if (4 * self.aggressiveness + 2 * self.strength + 280 * self.radius) - 7 * (1400 / 41) * self.speed > 9.2:
+            self.score = True
+        else:
+            self.score = False
+
+        self.power = 2 * self.strength + 280 * self.radius
+        self.consumption = 200 * self.radius + (1000 / 41) * self.speed + (2000 / 14) * self.strength
 
         self.color = int(
             self.aggressiveness + self.strength + self.leadership + self.team_spirit + self.radius + self.vx \
@@ -340,11 +350,10 @@ class Simulation:
                 self.food_to_remove.remove(p)
                 self.total_food.remove(p)
                 self.particles.remove(p)
-
             elif p in self.organism_to_remove:
                 self.organism_to_remove.remove(p)
                 self.particles.remove(p)
-                print('removed by fight', i)
+                print('removed by fight/flight', i)
 
             elif p.energy < 1:
                 self.particles.remove(p)
