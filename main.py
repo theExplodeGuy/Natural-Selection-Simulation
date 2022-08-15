@@ -9,12 +9,13 @@ from matplotlib.patches import Circle
 from matplotlib import animation
 from itertools import combinations
 from random import randint
+from utilities import plot_attribute
 
-POPULATION = 20
+POPULATION = 25
 MAX_BOUNDARY = 5
 MIN_BOUNDARY = 0
-FOOD_SOURCE = 15
-ENERGY = 3000000 / 2
+FOOD_SOURCE = 13
+ENERGY = 3000000 / 2.5
 
 
 # TODO separate food from organisms
@@ -155,6 +156,8 @@ class Simulation:
         radius can be a single value or a sequence with n values.
         """
 
+        self.max_attribute = []
+        self.avg_attribute = [0]
         self.organism_to_remove = set()
         self.circles = []
         self.to_add = []
@@ -242,12 +245,13 @@ class Simulation:
 
         def reproduce(p1, p2):
             if p1.is_fed and p2.is_fed and not p1.has_offspring and not p2.has_offspring:
-                p1.has_offspring = True
-                p2.has_offspring = True
+                # p1.has_offspring = True
+                # p2.has_offspring = True
                 while True:
                     x, y = 0.05 + (MAX_BOUNDARY - 2 * 0.05) * np.random.random(2)
 
-                    color = int(p1.vx + p2.vy + ((p2.radius + p1.radius) / 2))
+                    color = int(p1.vx + p2.vy + ((p2.radius + p1.radius) / 2)
+                        + (p1.aggressiveness + p2.aggressiveness) / 2 + (p1.strength + p2.strength) / 2)
 
                     styles = {'color': f'C{color}', 'fill': False}
 
@@ -255,6 +259,9 @@ class Simulation:
                     # been placed.
                     particle = Organism(x=x, y=y, vx=p1.vx, vy=p2.vy, radius=(p2.radius + p1.radius) / 2,
                                         styles=styles)
+
+                    particle.strength = (p1.strength + p2.strength) / 2
+                    particle.aggressiveness = (p1.aggressiveness + p2.aggressiveness) / 2
 
                     for p2 in self.particles:
                         if p2.overlaps(particle):
@@ -337,6 +344,17 @@ class Simulation:
             self.init_food()
             self.init()
 
+    def collect_data(self):
+        attr_total = 0
+        max_attr = 0
+        for particle in self.particles:
+            attr_total += particle.aggressiveness
+            if particle.aggressiveness > max_attr:
+                max_attr = particle.aggressiveness
+
+        self.avg_attribute.append("%.1f" % (attr_total / len(self.particles)))
+        self.max_attribute.append(max_attr)
+
     def advance_animation(self, dt):
         """Advance the animation by dt, returning the updated Circles list."""
         self.hande_collisions()
@@ -363,6 +381,7 @@ class Simulation:
                 self.circles[i].center = p.r
 
         self.init()
+        self.collect_data()
         return self.circles
 
     def advance(self, dt):
@@ -388,7 +407,7 @@ class Simulation:
 
         return self.circles
 
-    def do_animation(self, save=False):
+    def do_animation(self, save=False, graphs=True):
         """Set up and carry animation.
         To save animation as a MP4 movie, set save=True."""
 
@@ -406,6 +425,10 @@ class Simulation:
             Writer = animation.writers['ffmpeg']
             writer = Writer(fps=100, bitrate=1800)
             anim.save('simulationv2.mp4', writer=writer)
+        if graphs:
+            plt.show()
+            plot_attribute(self.avg_attribute)
+
         else:
             plt.show()
 
