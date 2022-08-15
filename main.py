@@ -41,7 +41,7 @@ class Organism:
 
         # attributes
         self.aggressiveness = randint(1, 15)
-
+        self.speed = sqrt(self.vx ** 2 + self.vy ** 2)
         self.strength = randint(1, 15)
         self.leadership = randint(1, 15)
         self.team_spirit = randint(1, 15)
@@ -52,6 +52,13 @@ class Organism:
         self.is_food = False
         self.is_fed = False
         self.has_offspring = False
+
+        if (4 * self.aggressiveness + 2 * self.strength + 280 * self.radius) - 7 * (1400 / 41) * self.speed > 9.2:
+            self.score = True
+        else:
+            self.score = False
+
+        self.power = 2 * self.strength + 280 * self.radius
 
         self.color = int(
             self.aggressiveness + self.strength + self.leadership + self.team_spirit + self.radius + self.vx \
