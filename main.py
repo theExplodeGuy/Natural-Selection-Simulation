@@ -145,6 +145,7 @@ class Simulation:
         radius can be a single value or a sequence with n values.
         """
 
+        self.organism_to_remove = set()
         self.circles = []
         self.to_add = []
         self.food_to_remove = set()
@@ -254,11 +255,32 @@ class Simulation:
                         print('born')
                         break
 
-        def is_organisms():
-            pass
+        def is_organisms(p1, p2):
+            if p1.score and p2.score:
+                return fight_result(p1, p2)
+            elif p1.score and not p2.score:
+                return fight_vs_flight(p1, p2)
+            elif p2.score and not p1.score:
+                return fight_vs_flight(p2, p1)
+            """else:
+                co_operate(p1, p2)"""
 
-        def fight_or_flight():
-            pass
+        def fight_result(p1, p2):
+            if p1.power > p2.power and p1.consumption < p1.energy:
+                p1.energy = ENERGY
+                return p2
+            if p2.power > p1.power and p2.consumption < p2.energy:
+                p2.energy = ENERGY
+                return p1
+
+        def fight_vs_flight(fighter, runner):
+            if fighter.speed > runner.speed:
+                fighter.energy = ENERGY
+                return runner
+            elif runner.speed > fighter.speed:
+                return False
+            else:
+                fight_result(fighter, runner)
 
         def co_operate():
             pass
@@ -295,6 +317,9 @@ class Simulation:
                 elif self.particles[i].is_fed and self.particles[j].is_fed:
                     reproduce(self.particles[i], self.particles[j])
 
+                elif is_organisms(self.particles[i], self.particles[j]):
+                    self.organism_to_remove.add(is_organisms(self.particles[i], self.particles[j]))
+
                 move_randomly(self.particles[i], self.particles[j])
 
     def spawn_food(self):
@@ -314,6 +339,10 @@ class Simulation:
             if p in self.food_to_remove:
                 self.food_to_remove.remove(p)
                 self.total_food.remove(p)
+                self.particles.remove(p)
+
+            elif p in self.organism_to_remove:
+                self.organism_to_remove.remove(p)
                 self.particles.remove(p)
 
             elif p.energy < 1:
