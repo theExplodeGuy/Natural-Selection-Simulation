@@ -1,3 +1,4 @@
+import random
 import sys
 import time
 from math import sqrt
@@ -52,14 +53,6 @@ class Organism:
         self.is_food = False
         self.is_fed = False
         self.has_offspring = False
-
-        if (4 * self.aggressiveness + 2 * self.strength + 280 * self.radius) - 7 * (1400 / 41) * self.speed > 9.2:
-            self.score = True
-        else:
-            self.score = False
-
-        self.power = 2 * self.strength + 280 * self.radius
-        self.consumption = 200 * self.radius + (1000 / 41) * self.speed + (2000 / 14) * self.strength
 
         self.color = int(
             self.aggressiveness + self.strength + self.leadership + self.team_spirit + self.radius + self.vx \
@@ -239,8 +232,8 @@ class Simulation:
 
         def reproduce(p1, p2):
             if p1.is_fed and p2.is_fed and not p1.has_offspring and not p2.has_offspring:
-                # p1.has_offspring = True
-                # p2.has_offspring = True
+                p1.has_offspring = True
+                p2.has_offspring = True
                 while True:
                     x, y = 0.05 + (MAX_BOUNDARY - 2 * 0.05) * np.random.random(2)
 
@@ -269,8 +262,8 @@ class Simulation:
                 return fight_vs_flight(p1, p2)
             elif p2.score and not p1.score:
                 return fight_vs_flight(p2, p1)
-            """else:
-                co_operate(p1, p2)"""
+            """else:	
+                    co_operate(p1, p2)"""
 
         def fight_result(p1, p2):
             if p1.power > p2.power and p1.consumption < p1.energy:
@@ -289,7 +282,7 @@ class Simulation:
             else:
                 fight_result(fighter, runner)
 
-        def co_operate():
+        def co_operate(p1, p2):
             pass
 
         def split_food():
@@ -305,8 +298,8 @@ class Simulation:
             v1, v2 = p1.v, p2.v
             u1 = v1 - 2 * m2 / M * np.dot(v1 - v2, r1 - r2) / d * (r1 - r2)
             u2 = v2 - 2 * m1 / M * np.dot(v2 - v1, r2 - r1) / d * (r2 - r1)
-            p1.v = -v1
-            p2.v = -v2
+            p1.v = u1
+            p2.v = u2
 
         def remove_pair(pair_list, x):
             pair_list.remove(x)
