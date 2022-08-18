@@ -11,10 +11,10 @@ from itertools import combinations
 from random import randint
 from utilities import plot_attribute
 
-POPULATION = 25
-MAX_BOUNDARY = 5
+POPULATION = 500
+MAX_BOUNDARY = 10
 MIN_BOUNDARY = 0
-FOOD_SOURCE = 13
+FOOD_SOURCE = 100
 ENERGY = 3000000 / 2.5
 
 
@@ -46,7 +46,7 @@ class Organism:
 
         self.strength = randint(1, 15)
         self.leadership = randint(1, 15)
-        self.team_spirit = randint(1, 15)
+        self.team_spirit = 15 - self.aggressiveness
         self.speed = sqrt(self.vx ** 2 + self.vy ** 2)
 
         # food found
@@ -55,6 +55,7 @@ class Organism:
         self.is_food = False
         self.is_fed = False
         self.has_offspring = False
+        self.has_cooperated = False
 
         # score for fight or flight
         if (4 * self.aggressiveness + 2 * self.strength + 280 * self.radius) - 7 * (1400 / 41) * self.speed > 9.2:
@@ -251,7 +252,7 @@ class Simulation:
                     x, y = 0.05 + (MAX_BOUNDARY - 2 * 0.05) * np.random.random(2)
 
                     color = int(p1.vx + p2.vy + ((p2.radius + p1.radius) / 2)
-                        + (p1.aggressiveness + p2.aggressiveness) / 2 + (p1.strength + p2.strength) / 2)
+                                + (p1.aggressiveness + p2.aggressiveness) / 2 + (p1.strength + p2.strength) / 2)
 
                     styles = {'color': f'C{color}', 'fill': False}
 
@@ -279,8 +280,8 @@ class Simulation:
                 return fight_vs_flight(p1, p2)
             elif p2.score and not p1.score:
                 return fight_vs_flight(p2, p1)
-            """else:	
-                    co_operate(p1, p2)"""
+            else:
+                return cooperate(p1, p2)
 
         def fight_result(p1, p2):
             if p1.power > p2.power and p1.consumption < p1.energy:
@@ -299,8 +300,50 @@ class Simulation:
             else:
                 fight_result(fighter, runner)
 
-        def co_operate(p1, p2):
-            pass
+        def cooperate(p1, p2):
+            # check if leadership is compatible
+            if p1.leadership == p2.leadership:
+                return
+            # check which is the leader
+            elif p1.leadership > p2.leadership:
+                # setting new attributes to the leader
+                p1.radius = p1.radius + 0.2 * p2.radius
+                p1.aggressiveness = p1.aggressiveness + 0.2 * p2.aggressiveness
+                p1.strength = p1.strength + 0.2 * p2.strength
+                p1.leadership = p1.leadership + 0.2 * p2.leadership
+                # comparing speeds to set it to the on of the slower organism
+                if p1.vx > p2.vx:
+                    p1.vx = p2.vx
+
+                if p1.vy > p2.vy:
+                    p1.vy = p2.vy
+                update_organism(p1)
+                p1.has_cooperated = True
+                return p2
+            else:
+                # setting new attributes to leader
+                p2.radius = p2.radius + 0.2 * p1.radius
+                p2.aggressiveness = p2.aggressiveness + 0.2 * p1.aggressiveness
+                p2.strength = p2.strength + 0.2 * p1.strength
+                p2.leadership = p2.leadership + 0.2 * p1.leadership
+                # comparing speeds to set it to the on of the slower organism
+                if p2.vx > p1.vx:
+                    p2.vx = p1.vx
+
+                if p2.vy > p1.vy:
+                    p2.vy = p1.vy
+                update_organism(p2)
+                p2.has_cooperated = True
+                return p1
+
+        def update_organism(p1):
+            p1.speed = sqrt(p1.vx ** 2 + p1.vy ** 2)
+            if (4 * p1.aggressiveness + 2 * p1.strength + 280 * p1.radius) - 7 * (1400 / 41) * p1.speed > 9.2:
+                p1.score = True
+            else:
+                p1.score = False
+            p1.power = 2 * p1.strength + 280 * p1.radius
+            p1.consumption = 200 * p1.radius + (1000 / 41) * p1.speed + (2000 / 14) * p1.strength
 
         def split_food():
             pass
