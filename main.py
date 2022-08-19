@@ -9,12 +9,16 @@ from matplotlib.patches import Circle
 from matplotlib import animation
 from itertools import combinations
 from random import randint
-from utilities import plot_attribute
+from utilities import plot_agg_attribute
+from utilities import plot_power_attribute
+from utilities import plot_cooperation_attribute
+from utilities import collect_data
 
-POPULATION = 500
-MAX_BOUNDARY = 10
+
+POPULATION = 1000
+MAX_BOUNDARY = 15
 MIN_BOUNDARY = 0
-FOOD_SOURCE = 100
+FOOD_SOURCE = 200
 ENERGY = 3000000 / 2.5
 
 
@@ -55,7 +59,7 @@ class Organism:
         self.is_food = False
         self.is_fed = False
         self.has_offspring = False
-        self.has_cooperated = False
+        self.has_cooperated = 0
 
         # score for fight or flight
         if (4 * self.aggressiveness + 2 * self.strength + 280 * self.radius) - 7 * (1400 / 41) * self.speed > 9.2:
@@ -158,7 +162,9 @@ class Simulation:
         """
 
         self.max_attribute = []
-        self.avg_attribute = [0]
+        self.avg_agg_attribute = [0]
+        self.avg_power_attribute = [0]
+        self.avg_cooperation_attribute = [0]
         self.organism_to_remove = set()
         self.circles = []
         self.to_add = []
@@ -263,6 +269,11 @@ class Simulation:
 
                     particle.strength = (p1.strength + p2.strength) / 2
                     particle.aggressiveness = (p1.aggressiveness + p2.aggressiveness) / 2
+                    particle.radius = (p1.radius + p2.radius)/2
+                    particle.leadership = (p1.leadership + p2.leadership)/2
+                    particle.vx = (p1.vx + p2.vx)/2
+                    particle.vy = (p1.vy + p2.vy)/2
+                    update_organism(particle)
 
                     for p2 in self.particles:
                         if p2.overlaps(particle):
@@ -318,7 +329,7 @@ class Simulation:
                 if p1.vy > p2.vy:
                     p1.vy = p2.vy
                 update_organism(p1)
-                p1.has_cooperated = True
+                p1.has_cooperated += 1
                 return p2
             else:
                 # setting new attributes to leader
@@ -333,7 +344,7 @@ class Simulation:
                 if p2.vy > p1.vy:
                     p2.vy = p1.vy
                 update_organism(p2)
-                p2.has_cooperated = True
+                p2.has_cooperated += 1
                 return p1
 
         def update_organism(p1):
@@ -387,16 +398,7 @@ class Simulation:
             self.init_food()
             self.init()
 
-    def collect_data(self):
-        attr_total = 0
-        max_attr = 0
-        for particle in self.particles:
-            attr_total += particle.aggressiveness
-            if particle.aggressiveness > max_attr:
-                max_attr = particle.aggressiveness
 
-        self.avg_attribute.append("%.1f" % (attr_total / len(self.particles)))
-        self.max_attribute.append(max_attr)
 
     def advance_animation(self, dt):
         """Advance the animation by dt, returning the updated Circles list."""
@@ -424,7 +426,7 @@ class Simulation:
                 self.circles[i].center = p.r
 
         self.init()
-        self.collect_data()
+        collect_data(self)
         return self.circles
 
     def advance(self, dt):
@@ -470,7 +472,11 @@ class Simulation:
             anim.save('simulationv2.mp4', writer=writer)
         if graphs:
             plt.show()
-            plot_attribute(self.avg_attribute)
+            plot_agg_attribute(self.avg_agg_attribute)
+            plt.show()
+            plot_power_attribute(self.avg_power_attribute)
+            plt.show()
+            plot_cooperation_attribute(self.avg_cooperation_attribute)
 
         else:
             plt.show()
