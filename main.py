@@ -14,12 +14,11 @@ from utilities import plot_power_attribute
 from utilities import plot_cooperation_attribute
 from utilities import collect_data
 
-
-POPULATION = 1000
-MAX_BOUNDARY = 15
+POPULATION = 20
+MAX_BOUNDARY = 5
 MIN_BOUNDARY = 0
-FOOD_SOURCE = 200
-ENERGY = 3000000 / 2.5
+FOOD_SOURCE = 17
+ENERGY = 2000000
 
 
 # TODO separate food from organisms
@@ -57,8 +56,14 @@ class Organism:
         self.food_found = False
         # food or organism
         self.is_food = False
+
         self.is_fed = False
         self.has_offspring = False
+
+        # cooperation attributes
+        self.cooperation_dict = {"Followers": []}
+        self.is_cooperating = False
+        self.is_leader = False
         self.has_cooperated = 0
 
         # score for fight or flight
@@ -74,6 +79,7 @@ class Organism:
             self.aggressiveness + self.strength + self.leadership + self.team_spirit + self.radius + self.vx \
             + self.vy)
         self.styles = styles
+
         if not self.styles:
             # Default circle styles
             self.styles = {'color': f'C{self.color}', 'fill': True}
@@ -165,6 +171,7 @@ class Simulation:
         self.avg_agg_attribute = [0]
         self.avg_power_attribute = [0]
         self.avg_cooperation_attribute = [0]
+
         self.organism_to_remove = set()
         self.circles = []
         self.to_add = []
@@ -238,13 +245,24 @@ class Simulation:
 
         def is_food(p1, p2):
             if p1.is_food and not p2.is_food:
-                p2.energy = ENERGY
+                if p2.cooperation_dict:
+                    split_food(p2.cooperation_dict["Followers"])
+                    p2.energy = ENERGY / (len(p2.cooperation_dict["Followers"]) + 1)
+                else:
+                    p2.energy = ENERGY
+
                 p2.is_fed = True
                 p1.vx = 0
                 p1.vy = 0
                 return p1
+
             elif not p1.is_food and p2.is_food:
-                p1.energy = ENERGY
+                if p1.cooperation_dict:
+                    split_food(p1.cooperation_dict["Followers"])
+                    p1.energy = ENERGY / (len(p1.cooperation_dict["Followers"]) + 1)
+                else:
+                    p1.energy = ENERGY
+
                 p1.is_fed = True
                 p2.vx = 0
                 p2.vy = 0
@@ -252,13 +270,14 @@ class Simulation:
 
         def reproduce(p1, p2):
             if p1.is_fed and p2.is_fed and not p1.has_offspring and not p2.has_offspring:
-                # p1.has_offspring = True
-                # p2.has_offspring = True
+                p1.has_offspring = True
+                p2.has_offspring = True
                 while True:
                     x, y = 0.05 + (MAX_BOUNDARY - 2 * 0.05) * np.random.random(2)
 
                     color = int(p1.vx + p2.vy + ((p2.radius + p1.radius) / 2)
-                                + (p1.aggressiveness + p2.aggressiveness) / 2 + (p1.strength + p2.strength) / 2)
+                                + (p1.aggressiveness + p2.aggressiveness) / 2 + (p1.strength + p2.strength) / 2 \
+                                + (p1.leadership + p2.leadership) / 2)
 
                     styles = {'color': f'C{color}', 'fill': False}
 
@@ -269,10 +288,10 @@ class Simulation:
 
                     particle.strength = (p1.strength + p2.strength) / 2
                     particle.aggressiveness = (p1.aggressiveness + p2.aggressiveness) / 2
-                    particle.radius = (p1.radius + p2.radius)/2
-                    particle.leadership = (p1.leadership + p2.leadership)/2
-                    particle.vx = (p1.vx + p2.vx)/2
-                    particle.vy = (p1.vy + p2.vy)/2
+                    particle.radius = (p1.radius + p2.radius) / 2
+                    particle.leadership = (p1.leadership + p2.leadership) / 2
+                    particle.vx = (p1.vx + p2.vx) / 2
+                    particle.vy = (p1.vy + p2.vy) / 2
                     update_organism(particle)
 
                     for p2 in self.particles:
@@ -284,7 +303,7 @@ class Simulation:
                         print('born')
                         break
 
-        def is_organisms(p1, p2):
+        def organism_behaviour(p1, p2):
             if p1.score and p2.score:
                 return fight_result(p1, p2)
             elif p1.score and not p2.score:
@@ -292,14 +311,23 @@ class Simulation:
             elif p2.score and not p1.score:
                 return fight_vs_flight(p2, p1)
             else:
-                return cooperate(p1, p2)
+                cooperate(p1, p2)
+                return False
 
         def fight_result(p1, p2):
             if p1.power > p2.power and p1.consumption < p1.energy:
                 p1.energy = ENERGY
+                if p1.cooperation_dict:
+                    for p in p1.cooperation_dict["Followers"]:
+                        p.energy = ENERGY
+
                 return p2
             if p2.power > p1.power and p2.consumption < p2.energy:
                 p2.energy = ENERGY
+                if p2.cooperation_dict:
+                    for p in p2.cooperation_dict["Followers"]:
+                        p.energy = ENERGY
+
                 return p1
 
         def fight_vs_flight(fighter, runner):
@@ -311,6 +339,12 @@ class Simulation:
             else:
                 fight_result(fighter, runner)
 
+        def update_coop(p1, p2):
+            p1.radius = p1.radius + 0.2 * p2.radius
+            p1.aggressiveness = p1.aggressiveness + 0.2 * p2.aggressiveness
+            p1.strength = p1.strength + 0.2 * p2.strength
+            p1.leadership = p1.leadership + 0.2 * p2.leadership
+
         def cooperate(p1, p2):
             # check if leadership is compatible
             if p1.leadership == p2.leadership:
@@ -318,34 +352,74 @@ class Simulation:
             # check which is the leader
             elif p1.leadership > p2.leadership:
                 # setting new attributes to the leader
+                """
                 p1.radius = p1.radius + 0.2 * p2.radius
                 p1.aggressiveness = p1.aggressiveness + 0.2 * p2.aggressiveness
                 p1.strength = p1.strength + 0.2 * p2.strength
                 p1.leadership = p1.leadership + 0.2 * p2.leadership
+                """
+
+                update_coop(p1, p2)
+                update_coop(p2, p2)
+
                 # comparing speeds to set it to the on of the slower organism
                 if p1.vx > p2.vx:
                     p1.vx = p2.vx
 
                 if p1.vy > p2.vy:
                     p1.vy = p2.vy
+
                 update_organism(p1)
+                update_organism(p2)
+
                 p1.has_cooperated += 1
-                return p2
+                p1.cooperation_dict["Leader"] = p1
+                p1.is_cooperating = True
+                p1.is_leader = True
+
+                p2.cooperation_dict["Leader"] = p1
+                p2.cooperation_dict["Followers"].append(p2)
+
+                if p2 not in p1.cooperation_dict:
+                    p1.cooperation_dict["Followers"].append(p2)
+
+                p2.is_cooperating = True
+                return
             else:
                 # setting new attributes to leader
-                p2.radius = p2.radius + 0.2 * p1.radius
+                """
+                p2.radius = p2.radius + 0.02 * p1.radius
                 p2.aggressiveness = p2.aggressiveness + 0.2 * p1.aggressiveness
                 p2.strength = p2.strength + 0.2 * p1.strength
                 p2.leadership = p2.leadership + 0.2 * p1.leadership
+                """
+
+                update_coop(p2, p1)
+                update_coop(p1, p1)
+
                 # comparing speeds to set it to the on of the slower organism
                 if p2.vx > p1.vx:
                     p2.vx = p1.vx
 
                 if p2.vy > p1.vy:
                     p2.vy = p1.vy
+
                 update_organism(p2)
+                update_organism(p1)
+
                 p2.has_cooperated += 1
-                return p1
+                p2.cooperation_dict["Leader"] = p2
+                p2.is_cooperating = True
+                p2.is_leader = True
+
+                p1.cooperation_dict["Leader"] = p2
+                p1.cooperation_dict["Followers"].append(p1)
+
+                if p1 not in p2.cooperation_dict:
+                    p2.cooperation_dict["Followers"].append(p1)
+
+                p1.is_cooperating = True
+                return
 
         def update_organism(p1):
             p1.speed = sqrt(p1.vx ** 2 + p1.vy ** 2)
@@ -356,8 +430,10 @@ class Simulation:
             p1.power = 2 * p1.strength + 280 * p1.radius
             p1.consumption = 200 * p1.radius + (1000 / 41) * p1.speed + (2000 / 14) * p1.strength
 
-        def split_food():
-            pass
+        # TODO we should be splitting according to team spirit
+        def split_food(organism_list):
+            for p in organism_list:
+                p.energy = (ENERGY / len(organism_list) + 1)
 
         # move randomly after collision according to these equations:
         # https://en.wikipedia.org/wiki/Elastic_collision
@@ -372,9 +448,6 @@ class Simulation:
             p1.v = u1
             p2.v = u2
 
-        def remove_pair(pair_list, x):
-            pair_list.remove(x)
-
         """Collisions should be checked amongst all particles. Combinations generates pairs of all Organisms into the 
         self.particles list of Organisms on the fly. """
         pairs = list(combinations(range(len(self.particles)), 2))
@@ -388,17 +461,16 @@ class Simulation:
                 elif self.particles[i].is_fed and self.particles[j].is_fed:
                     reproduce(self.particles[i], self.particles[j])
 
-                elif is_organisms(self.particles[i], self.particles[j]):
-                    self.organism_to_remove.add(is_organisms(self.particles[i], self.particles[j]))
+                elif organism_behaviour(self.particles[i], self.particles[j]):
+                    self.organism_to_remove.add(organism_behaviour(self.particles[i], self.particles[j]))
 
-                move_randomly(self.particles[i], self.particles[j])
+                else:
+                    move_randomly(self.particles[i], self.particles[j])
 
     def spawn_food(self):
         if not self.total_food:
             self.init_food()
             self.init()
-
-
 
     def advance_animation(self, dt):
         """Advance the animation by dt, returning the updated Circles list."""
@@ -413,6 +485,7 @@ class Simulation:
                 self.food_to_remove.remove(p)
                 self.total_food.remove(p)
                 self.particles.remove(p)
+
             elif p in self.organism_to_remove:
                 self.organism_to_remove.remove(p)
                 self.particles.remove(p)
@@ -422,7 +495,13 @@ class Simulation:
                 self.particles.remove(p)
                 print('removed by energy', i)
 
-            elif p not in self.food_to_remove and p.energy > 1:
+            elif p.cooperation_dict and p.is_leader:
+                for particle in p.cooperation_dict["Followers"]:
+                    if particle in self.particles:
+                        particle.x = p.x + p.radius + particle.radius
+                        particle.y = p.y + p.radius + particle.radius
+
+            elif p not in self.food_to_remove and p.energy >= 0 and not p.is_cooperating:
                 self.circles[i].center = p.r
 
         self.init()
@@ -470,6 +549,7 @@ class Simulation:
             Writer = animation.writers['ffmpeg']
             writer = Writer(fps=100, bitrate=1800)
             anim.save('simulationv2.mp4', writer=writer)
+
         if graphs:
             plt.show()
             plot_agg_attribute(self.avg_agg_attribute)
