@@ -1,23 +1,22 @@
-import random
+import math
 import sys
 import time
+import pandas as pd
 from math import sqrt
 
+import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib import animation
 from itertools import combinations
 from random import randint
-from utilities import plot_agg_attribute
-from utilities import plot_power_attribute
-from utilities import plot_cooperation_attribute
-from utilities import collect_data
+from utilities import plot_agg_attribute, plot_power_attribute, plot_cooperation_attribute, collect_data, plot_3d
 
-POPULATION = 20
+POPULATION = 25
 MAX_BOUNDARY = 5
 MIN_BOUNDARY = 0
-FOOD_SOURCE = 17
+FOOD_SOURCE = 20
 ENERGY = 2000000
 
 
@@ -166,6 +165,9 @@ class Simulation:
 
         radius can be a single value or a sequence with n values.
         """
+        self.d_plot = []
+
+        self.plot = True
 
         self.max_attribute = []
         self.avg_agg_attribute = [0]
@@ -270,8 +272,8 @@ class Simulation:
 
         def reproduce(p1, p2):
             if p1.is_fed and p2.is_fed and not p1.has_offspring and not p2.has_offspring:
-                p1.has_offspring = True
-                p2.has_offspring = True
+                # p1.has_offspring = True
+                # p2.has_offspring = True
                 while True:
                     x, y = 0.05 + (MAX_BOUNDARY - 2 * 0.05) * np.random.random(2)
 
@@ -479,6 +481,8 @@ class Simulation:
         if len(self.particles) == 0:
             sys.exit('END')
 
+        self.d_plot
+
         for i, p in enumerate(self.particles):
             p.advance(dt)
             if p in self.food_to_remove:
@@ -496,13 +500,18 @@ class Simulation:
                 print('removed by energy', i)
 
             elif p.cooperation_dict and p.is_leader:
+                radii = [x.radius for x in p.cooperation_dict["Followers"]]
                 for particle in p.cooperation_dict["Followers"]:
                     if particle in self.particles:
-                        particle.x = p.x + p.radius + particle.radius
-                        particle.y = p.y + p.radius + particle.radius
+                        particle.x = p.x + p.radius + math.fsum(
+                            radii[0:p.cooperation_dict["Followers"].index(particle) + 1])
+                        particle.y = p.y + p.radius + math.fsum(
+                            radii[0:p.cooperation_dict["Followers"].index(particle) + 1])
 
             elif p not in self.food_to_remove and p.energy >= 0 and not p.is_cooperating:
                 self.circles[i].center = p.r
+
+            # self.d_plot.append([p.radius, p.speed, p.aggressiveness])
 
         self.init()
         collect_data(self)
@@ -531,19 +540,20 @@ class Simulation:
 
         return self.circles
 
-    def do_animation(self, save=False, graphs=True):
+    def do_animation(self, save=False, graphs=False, simulation=True):
         """Set up and carry animation.
         To save animation as a MP4 movie, set save=True."""
 
-        fig, self.ax = plt.subplots()
-        for s in ['top', 'bottom', 'left', 'right']:
-            self.ax.spines[s].set_linewidth(2)
-        self.ax.set_aspect('equal', 'box')
-        self.ax.set_xlim(MIN_BOUNDARY, MAX_BOUNDARY)
-        self.ax.set_ylim(MIN_BOUNDARY, MAX_BOUNDARY)
-        self.ax.xaxis.set_ticks([])
-        self.ax.yaxis.set_ticks([])
-        anim = animation.FuncAnimation(fig, self.animate, init_func=self.init, frames=800, interval=2, blit=True)
+        if simulation:
+            fig, self.ax = plt.subplots()
+            for s in ['top', 'bottom', 'left', 'right']:
+                self.ax.spines[s].set_linewidth(2)
+            self.ax.set_aspect('equal', 'box')
+            self.ax.set_xlim(MIN_BOUNDARY, MAX_BOUNDARY)
+            self.ax.set_ylim(MIN_BOUNDARY, MAX_BOUNDARY)
+            self.ax.xaxis.set_ticks([])
+            self.ax.yaxis.set_ticks([])
+            anim = animation.FuncAnimation(fig, self.animate, init_func=self.init, frames=800, interval=2, blit=True)
 
         if save:
             Writer = animation.writers['ffmpeg']
@@ -553,9 +563,7 @@ class Simulation:
         if graphs:
             plt.show()
             plot_agg_attribute(self.avg_agg_attribute)
-            plt.show()
             plot_power_attribute(self.avg_power_attribute)
-            plt.show()
             plot_cooperation_attribute(self.avg_cooperation_attribute)
 
         else:
