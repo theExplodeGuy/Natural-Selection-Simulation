@@ -1,5 +1,7 @@
+import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 def collect_data(self):
@@ -18,6 +20,7 @@ def collect_data(self):
     self.avg_power_attribute.append("%.1f" % (attr_power_total / len(self.particles)))
     self.avg_cooperation_attribute.append("%.1f" % (attr_cooperation_total / len(self.particles)))
     self.max_attribute.append(max_agg_attr)
+
 
 def plot_agg_attribute(avg_attr):
     plt.rcParams["figure.figsize"] = [7.50, 3.50]
@@ -56,3 +59,4 @@ def plot_cooperation_attribute(avg_attr):
     plt.plot(y, color="red")
 
     plt.show()
+

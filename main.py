@@ -7,11 +7,12 @@ from math import sqrt
 import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
+import mpl_toolkits.mplot3d.axes3d as p3
 from matplotlib.patches import Circle
 from matplotlib import animation
 from itertools import combinations
 from random import randint
-from utilities import plot_agg_attribute, plot_power_attribute, plot_cooperation_attribute, collect_data, plot_3d
+from utilities import plot_agg_attribute, plot_power_attribute, plot_cooperation_attribute, collect_data
 
 POPULATION = 25
 MAX_BOUNDARY = 5
@@ -165,9 +166,6 @@ class Simulation:
 
         radius can be a single value or a sequence with n values.
         """
-        self.d_plot = []
-
-        self.plot = True
 
         self.max_attribute = []
         self.avg_agg_attribute = [0]
@@ -481,10 +479,9 @@ class Simulation:
         if len(self.particles) == 0:
             sys.exit('END')
 
-        self.d_plot
-
         for i, p in enumerate(self.particles):
             p.advance(dt)
+
             if p in self.food_to_remove:
                 self.food_to_remove.remove(p)
                 self.total_food.remove(p)
@@ -510,8 +507,6 @@ class Simulation:
 
             elif p not in self.food_to_remove and p.energy >= 0 and not p.is_cooperating:
                 self.circles[i].center = p.r
-
-            # self.d_plot.append([p.radius, p.speed, p.aggressiveness])
 
         self.init()
         collect_data(self)
@@ -540,20 +535,19 @@ class Simulation:
 
         return self.circles
 
-    def do_animation(self, save=False, graphs=False, simulation=True):
+    def do_animation(self, save=False, graphs=True):
         """Set up and carry animation.
         To save animation as a MP4 movie, set save=True."""
 
-        if simulation:
-            fig, self.ax = plt.subplots()
-            for s in ['top', 'bottom', 'left', 'right']:
-                self.ax.spines[s].set_linewidth(2)
-            self.ax.set_aspect('equal', 'box')
-            self.ax.set_xlim(MIN_BOUNDARY, MAX_BOUNDARY)
-            self.ax.set_ylim(MIN_BOUNDARY, MAX_BOUNDARY)
-            self.ax.xaxis.set_ticks([])
-            self.ax.yaxis.set_ticks([])
-            anim = animation.FuncAnimation(fig, self.animate, init_func=self.init, frames=800, interval=2, blit=True)
+        fig, self.ax = plt.subplots()
+        for s in ['top', 'bottom', 'left', 'right']:
+            self.ax.spines[s].set_linewidth(2)
+        self.ax.set_aspect('equal', 'box')
+        self.ax.set_xlim(MIN_BOUNDARY, MAX_BOUNDARY)
+        self.ax.set_ylim(MIN_BOUNDARY, MAX_BOUNDARY)
+        self.ax.xaxis.set_ticks([])
+        self.ax.yaxis.set_ticks([])
+        anim = animation.FuncAnimation(fig, self.animate, init_func=self.init, frames=800, interval=2, blit=True)
 
         if save:
             Writer = animation.writers['ffmpeg']
@@ -563,7 +557,9 @@ class Simulation:
         if graphs:
             plt.show()
             plot_agg_attribute(self.avg_agg_attribute)
+            plt.show()
             plot_power_attribute(self.avg_power_attribute)
+            plt.show()
             plot_cooperation_attribute(self.avg_cooperation_attribute)
 
         else:
