@@ -467,7 +467,6 @@ class Simulation:
 
                                      p1.v)
 
-
             p1.v = matrix_speed
 
         """Collisions should be checked amongst all particles. Combinations generates pairs of all Organisms into the 
