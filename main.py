@@ -1,20 +1,17 @@
 import math
 import sys
 import time
-import pandas as pd
 from math import sqrt
 
-import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
-import mpl_toolkits.mplot3d.axes3d as p3
 from matplotlib.patches import Circle
 from matplotlib import animation
 from itertools import combinations
-from random import randint
+from random import randint, uniform
 from utilities import plot_agg_attribute, plot_power_attribute, plot_cooperation_attribute, collect_data
 
-POPULATION = 25
+POPULATION = 10
 MAX_BOUNDARY = 5
 MIN_BOUNDARY = 0
 FOOD_SOURCE = 20
@@ -43,6 +40,12 @@ class Organism:
         self.v = np.array((vx, vy))
         # size
         self.radius = radius
+
+        # sense
+        # if randint(1, 3) == 3:
+        self.sense_radius = radius + uniform(0, 0.4)
+        # else:
+        # self.sense_radius = 0
 
         # attributes
         self.aggressiveness = randint(1, 15)
@@ -119,9 +122,11 @@ class Organism:
     def vy(self, value):
         self.v[1] = value
 
+    def overlaps_sense(self, other):
+        return np.hypot(*(self.r - other.r)) < self.sense_radius + other.radius and other.is_food
+
     def overlaps(self, other):
         """Does the circle of this Particle overlap that of other?"""
-
         return np.hypot(*(self.r - other.r)) < self.radius + other.radius
 
     def draw(self, ax):
@@ -270,8 +275,8 @@ class Simulation:
 
         def reproduce(p1, p2):
             if p1.is_fed and p2.is_fed and not p1.has_offspring and not p2.has_offspring:
-                # p1.has_offspring = True
-                # p2.has_offspring = True
+                p1.has_offspring = True
+                p2.has_offspring = True
                 while True:
                     x, y = 0.05 + (MAX_BOUNDARY - 2 * 0.05) * np.random.random(2)
 
@@ -292,6 +297,7 @@ class Simulation:
                     particle.leadership = (p1.leadership + p2.leadership) / 2
                     particle.vx = (p1.vx + p2.vx) / 2
                     particle.vy = (p1.vy + p2.vy) / 2
+                    particle.sense_radius = (p1.sense_radius + p2.sense_radius) / 2
                     update_organism(particle)
 
                     for p2 in self.particles:
@@ -344,6 +350,7 @@ class Simulation:
             p1.aggressiveness = p1.aggressiveness + 0.2 * p2.aggressiveness
             p1.strength = p1.strength + 0.2 * p2.strength
             p1.leadership = p1.leadership + 0.2 * p2.leadership
+            p1.sense_radius += 0.2 * p2.sense_radius
 
         def cooperate(p1, p2):
             # check if leadership is compatible
@@ -448,10 +455,26 @@ class Simulation:
             p1.v = u1
             p2.v = u2
 
+        def move_sense(p1, p2):
+            vect1 = [(p1.x - p2.x), (p1.y - p2.y)]
+            vect2 = [p1.vx, p1.vy]
+
+            angle = 360 - (np.arccos(np.dot(vect1, vect2) / (sqrt(
+                vect1[0] ** 2 + vect1[1] ** 2) * sqrt(vect2[0] ** 2 + vect2[1] ** 2))))
+
+            matrix_speed = np.matmul([[np.cos(angle), np.sin(angle)],
+                                      [-np.sin(angle), np.cos(angle)]],
+
+                                     p1.v)
+
+
+            p1.v = matrix_speed
+
         """Collisions should be checked amongst all particles. Combinations generates pairs of all Organisms into the 
         self.particles list of Organisms on the fly. """
         pairs = list(combinations(range(len(self.particles)), 2))
         for i, j in pairs[:]:
+
             if self.particles[i].overlaps(self.particles[j]):
 
                 food = is_food(self.particles[i], self.particles[j])
@@ -466,6 +489,13 @@ class Simulation:
 
                 else:
                     move_randomly(self.particles[i], self.particles[j])
+
+            elif self.particles[i].overlaps_sense(self.particles[j]):
+                food = is_food(self.particles[i], self.particles[j])
+                if food:
+                    move_sense(self.particles[i], self.particles[j])
+                if self.particles[i].overlaps(self.particles[j]):
+                    self.food_to_remove.add(food)
 
     def spawn_food(self):
         if not self.total_food:
