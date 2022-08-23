@@ -55,8 +55,6 @@ class Organism:
         self.team_spirit = 15 - self.aggressiveness
         self.speed = sqrt(self.vx ** 2 + self.vy ** 2)
 
-        # food found
-        self.food_found = False
         # food or organism
         self.is_food = False
 
