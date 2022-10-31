@@ -9,7 +9,8 @@ from matplotlib.patches import Circle
 from matplotlib import animation
 from itertools import combinations
 from random import randint, uniform
-from utilities import plot_agg_attribute, plot_power_attribute, plot_cooperation_attribute, collect_data
+from utilities import plot_agg_attribute, plot_power_attribute, plot_cooperation_attribute, collect_data, \
+    plot_sense_attribute
 
 POPULATION = 10
 MAX_BOUNDARY = 5
@@ -120,6 +121,8 @@ class Organism:
     def vy(self, value):
         self.v[1] = value
 
+
+
     def overlaps_sense(self, other):
         return np.hypot(*(self.r - other.r)) < self.sense_radius + other.radius and other.is_food
 
@@ -174,6 +177,7 @@ class Simulation:
         self.avg_agg_attribute = [0]
         self.avg_power_attribute = [0]
         self.avg_cooperation_attribute = [0]
+        self.avg_sense_attribute = [0]
 
         self.organism_to_remove = set()
         self.circles = []
@@ -182,6 +186,7 @@ class Simulation:
         self.total_food = set()
         self.init_particles(n, radius, styles)
         self.init_food()
+
 
     def init_particles(self, n, radius, styles=None):
         """Initialize the n Particles of the simulation.
@@ -588,6 +593,8 @@ class Simulation:
             plot_power_attribute(self.avg_power_attribute)
             plt.show()
             plot_cooperation_attribute(self.avg_cooperation_attribute)
+            plt.show()
+            plot_sense_attribute(self.avg_sense_attribute)
 
         else:
             plt.show()
