@@ -44,7 +44,13 @@ This equation decides the winner of the fight between two organisms.
 The simulation appears to favor aggression and power over cooperation. Weaker organisms that survive tend to cooperate in order to gain additional strength in numbers.
 ![alt text](https://github.com/theExplodeGuy/Natural-Selection-Simulation/blob/main/Figures/Average_Aggression.png?raw=true)
 Average Aggression
-![alt text](https://github.com/theExplodeGuy/Natural-Selection-Simulation/blob/main/Figures/Average_Aggression.png?raw=true)
 
+![alt text](https://github.com/theExplodeGuy/Natural-Selection-Simulation/blob/main/Figures/Power.png?raw=true)
+Average Power
 
+![alt text](https://github.com/theExplodeGuy/Natural-Selection-Simulation/blob/main/Figures/Cooperation.png?raw=true)
+Average Cooperation
 
+Organisms with significant sense radius are able to locate food at a higher rate. The combination of high speed and sense seems to be favored in most runs of the simulation. Sense accelerates to max level almost instantly.
+![alt text](https://github.com/theExplodeGuy/Natural-Selection-Simulation/blob/main/Figures/Sense.png?raw=true)
+Average Sense in population

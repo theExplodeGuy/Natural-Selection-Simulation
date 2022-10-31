@@ -1,6 +1,5 @@
 import math
 import sys
-import time
 from math import sqrt
 
 import numpy as np
