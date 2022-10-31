@@ -29,28 +29,38 @@ The simulation is written in python using matplotlib to animate the organisms.
 The behaviour of the organisms is determined by a series of equations:
 
 - ENERGY CONSUMPTION
+
 ```self.consumption = 200 * self.radius + (1000 / 41) * self.speed + (2000 / 14) * self.strength```
+
 This equation determines the life-span of the organism given all the attributes that consume energy.
 
 - TO DECIDE FIGHT OR FLIGHT
+
 ```4 * self.aggressiveness + 2 * self.strength + 280 * self.radius) - 7 * (1400 / 41) * self.speed```
+
 This equation decides whether an organism should engage in fighting based on whether it will be beneficial for it or not. The equation takes into account attributes such as aggressiveness, strength, and speed. Attributes that are usually decisive in a fight.
 
 - DETERMINE FIGHT RESULT
+
 ```self.power = 2 * self.strength + 280 * self.radius```
+
 This equation decides the winner of the fight between two organisms.
 
 #### Results:
 The simulation appears to favor aggression and power over cooperation. Weaker organisms that survive tend to cooperate in order to gain additional strength in numbers.
 ![alt text](https://github.com/theExplodeGuy/Natural-Selection-Simulation/blob/main/Figures/Average_Aggression.png?raw=true)
+
 Average Aggression
 
 ![alt text](https://github.com/theExplodeGuy/Natural-Selection-Simulation/blob/main/Figures/Power.png?raw=true)
+
 Average Power
 
 ![alt text](https://github.com/theExplodeGuy/Natural-Selection-Simulation/blob/main/Figures/Cooperation.png?raw=true)
+
 Average Cooperation
 
 Organisms with significant sense radius are able to locate food at a higher rate. The combination of high speed and sense seems to be favored in most runs of the simulation. Sense accelerates to max level almost instantly.
 ![alt text](https://github.com/theExplodeGuy/Natural-Selection-Simulation/blob/main/Figures/Sense.png?raw=true)
+
 Average Sense in population
