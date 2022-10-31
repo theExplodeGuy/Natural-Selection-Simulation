@@ -62,6 +62,6 @@ Average Power
 Average Cooperation
 
 Organisms with significant sense radius are able to locate food at a higher rate. The combination of high speed and sense seems to be favored in most runs of the simulation. Sense accelerates to max level almost instantly.
-![alt text](https://github.com/theExplodeGuy/Natural-Selection-Simulation/blob/main/Figures/Sense.png?raw=true)
+![alt text](https://github.com/theExplodeGuy/Natural-Selection-Simulation/blob/main/Figures/Power.png?raw=true)
 
 Average Sense in population
