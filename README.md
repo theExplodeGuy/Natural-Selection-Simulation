@@ -48,6 +48,7 @@ This equation decides the winner of the fight between two organisms.
 
 #### Results:
 The simulation appears to favor aggression and power over cooperation. Weaker organisms that survive tend to cooperate in order to gain additional strength in numbers.
+
 ![alt text](https://github.com/theExplodeGuy/Natural-Selection-Simulation/blob/main/Figures/Average_Aggression.png?raw=true)
 
 Average Aggression
